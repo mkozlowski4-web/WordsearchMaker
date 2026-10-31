@@ -96,6 +96,13 @@ input[type="text"], textarea, select {
 textarea { min-height: 11rem; resize: vertical; line-height: 1.45; }
 .hint { margin: 6px 0 0; font-size: .85rem; color: var(--ink-soft); }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets { display: flex; flex-direction: column; gap: 12px; }
+.plabel {
+  display: block; margin-bottom: 4px; font-size: .72rem; font-weight: 600;
+  letter-spacing: .07em; text-transform: uppercase; color: var(--ink-soft);
+}
+.more summary { cursor: pointer; font-weight: 600; font-size: .9rem; padding: .2rem 0; }
+.more[open] summary { margin-bottom: 10px; }
 .chip {
   font: 600 .88rem var(--font-body); padding: .35rem .8rem; color: var(--ink);
   background: var(--paper); border: 2px solid var(--edge); border-radius: 999px; cursor: pointer;
@@ -227,7 +234,7 @@ textarea { min-height: 11rem; resize: vertical; line-height: 1.45; }
   <form class="card maker" id="maker" autocomplete="off">
     <div class="field">
       <span class="lbl">Start with a list</span>
-      <div class="chips" id="presets"></div>
+      <div class="presets" id="presets"></div>
     </div>
     <div class="field">
       <label class="lbl" for="title">Puzzle title</label>
@@ -488,27 +495,73 @@ Object.keys(ISO).forEach(name => { FLAGS[normalise(name)] = flagOf(ISO[name]); }
 /*PURE_END*/
 
 const PRESETS = [
-  { id: 'wc', name: 'World Cup 2026', title: 'World Cup 2026 Teams', words: [
+  { id: 'wc', group: 0, name: 'All 48 teams', title: 'World Cup 2026 Teams', words: [
     'Mexico','South Africa','South Korea','Czechia','Canada','Bosnia','Qatar','Switzerland',
     'Brazil','Morocco','Haiti','Scotland','USA','Paraguay','Australia','Turkey',
     'Germany','Curaçao','Ivory Coast','Ecuador','Netherlands','Japan','Sweden','Tunisia',
     'Belgium','Egypt','Iran','New Zealand','Spain','Cape Verde','Saudi Arabia','Uruguay',
     'France','Senegal','Iraq','Norway','Argentina','Algeria','Austria','Jordan',
     'Portugal','DR Congo','Uzbekistan','Colombia','England','Croatia','Ghana','Panama'] },
-  { id: 'farm', name: 'Farm animals', title: 'On the Farm', words: [
+  { id: 'wc-eu', group: 0, name: 'Europe', title: 'World Cup Teams: Europe', words: [
+    'Czechia','Bosnia','Switzerland','Scotland','Turkey','Germany','Netherlands','Sweden',
+    'Belgium','Spain','France','Norway','Austria','Portugal','England','Croatia'] },
+  { id: 'wc-af', group: 0, name: 'Africa', title: 'World Cup Teams: Africa', words: [
+    'South Africa','Morocco','Ivory Coast','Tunisia','Egypt','Cape Verde','Senegal','Algeria','DR Congo','Ghana'] },
+  { id: 'wc-as', group: 0, name: 'Asia & Oceania', title: 'World Cup Teams: Asia and Oceania', words: [
+    'South Korea','Qatar','Australia','Japan','Iran','Saudi Arabia','Iraq','Jordan','Uzbekistan','New Zealand'] },
+  { id: 'wc-am', group: 0, name: 'The Americas', title: 'World Cup Teams: The Americas', words: [
+    'Mexico','Canada','USA','Haiti','Curaçao','Panama','Brazil','Paraguay','Ecuador','Uruguay','Argentina','Colombia'] },
+
+  { id: 'halloween', group: 1, name: 'Halloween', title: 'Spooky Halloween', words: [
+    'Pumpkin','Ghost','Witch','Bat','Spider','Skeleton','Candy','Costume','Cauldron','Monster','Broomstick','Cobweb','Vampire','Owl'] },
+  { id: 'bonfire', group: 1, name: 'Bonfire Night', title: 'Bonfire Night', words: [
+    'Bonfire','Fireworks','Sparkler','Rocket','Catherine Wheel','Toffee Apple','Flames','Smoke','Sparks','Gloves','Scarf','Bang'] },
+  { id: 'christmas', group: 1, name: 'Christmas', title: 'Christmas Time', words: [
+    'Santa','Reindeer','Snowman','Presents','Holly','Tinsel','Elf','Sleigh','Stocking','Angel','Carols','Turkey','Snow','Star','Tree','Candle'] },
+
+  { id: 'farm', group: 2, name: 'Farm animals', title: 'On the Farm', words: [
     'Cow','Pig','Sheep','Horse','Goat','Duck','Chicken','Donkey','Goose','Rabbit','Farmer','Tractor','Barn'] },
-  { id: 'colours', name: 'Colours', title: 'Colours', words: [
-    'Red','Blue','Green','Yellow','Orange','Purple','Pink','Brown','Black','White','Grey','Gold','Silver'] },
-  { id: 'dino', name: 'Dinosaurs', title: 'Dinosaurs', words: [
+  { id: 'zoo', group: 2, name: 'Zoo animals', title: 'At the Zoo', words: [
+    'Lion','Tiger','Elephant','Giraffe','Zebra','Monkey','Penguin','Hippo','Rhino','Kangaroo','Panda','Crocodile','Gorilla','Camel'] },
+  { id: 'pets', group: 2, name: 'Pets', title: 'Pets', words: [
+    'Dog','Cat','Hamster','Rabbit','Fish','Parrot','Guinea Pig','Tortoise','Pony','Budgie','Gerbil','Kitten','Puppy'] },
+  { id: 'sea', group: 2, name: 'Sea creatures', title: 'Under the Sea', words: [
+    'Shark','Whale','Dolphin','Octopus','Crab','Turtle','Seahorse','Jellyfish','Starfish','Lobster','Seal','Squid','Coral','Eel'] },
+  { id: 'bugs', group: 2, name: 'Bugs', title: 'Creepy Crawlies', words: [
+    'Ant','Bee','Butterfly','Ladybird','Spider','Beetle','Worm','Snail','Caterpillar','Dragonfly','Wasp','Cricket','Moth','Fly'] },
+  { id: 'dino', group: 2, name: 'Dinosaurs', title: 'Dinosaurs', words: [
     'T Rex','Triceratops','Stegosaurus','Velociraptor','Brachiosaurus','Diplodocus','Spinosaurus',
     'Ankylosaurus','Pterodactyl','Allosaurus','Fossil','Egg'] },
-  { id: 'space', name: 'Space', title: 'Out of This World', words: [
+
+  { id: 'colours', group: 3, name: 'Colours', title: 'Colours', words: [
+    'Red','Blue','Green','Yellow','Orange','Purple','Pink','Brown','Black','White','Grey','Gold','Silver'] },
+  { id: 'fruit', group: 3, name: 'Fruit', title: 'Fruit Salad', words: [
+    'Apple','Banana','Orange','Grape','Pear','Mango','Peach','Cherry','Lemon','Melon','Kiwi','Plum',
+    'Strawberry','Pineapple','Blueberry','Raspberry'] },
+  { id: 'food', group: 3, name: 'Food', title: 'Yummy Food', words: [
+    'Pizza','Pasta','Chips','Burger','Cheese','Bread','Cake','Biscuit','Sausage','Pancake','Ice Cream','Sandwich','Cereal','Pie'] },
+  { id: 'shapes', group: 3, name: 'Shapes', title: 'Shapes', words: [
+    'Circle','Square','Triangle','Rectangle','Oval','Star','Heart','Diamond','Cube','Cone','Cylinder','Pentagon','Hexagon','Sphere'] },
+  { id: 'counting', group: 3, name: 'Numbers', title: 'Counting', words: [
+    'One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Zero'] },
+  { id: 'body', group: 3, name: 'My body', title: 'My Body', words: [
+    'Head','Arm','Leg','Foot','Hand','Nose','Eye','Ear','Mouth','Knee','Elbow','Finger','Toe','Tooth','Tummy'] },
+  { id: 'family', group: 3, name: 'My family', title: 'My Family', words: [
+    'Mum','Dad','Sister','Brother','Nana','Grandad','Baby','Uncle','Auntie','Cousin','Grandma','Family'] },
+  { id: 'vehicles', group: 3, name: 'Vehicles', title: 'Things That Go', words: [
+    'Car','Bus','Train','Plane','Boat','Bike','Lorry','Tractor','Helicopter','Rocket','Ship','Van','Taxi','Tram'] },
+  { id: 'weather', group: 3, name: 'Weather', title: 'Weather', words: [
+    'Sun','Rain','Snow','Wind','Cloud','Storm','Rainbow','Fog','Thunder','Lightning','Puddle','Frost','Breeze'] },
+
+  { id: 'football', group: 4, name: 'Football', title: 'Football', words: [
+    'Goal','Pitch','Referee','Striker','Keeper','Penalty','Corner','Offside','Trophy','Boots','Whistle','Fans','Stadium','Captain','Defender','Midfield'] },
+  { id: 'space', group: 4, name: 'Space', title: 'Out of This World', words: [
     'Sun','Moon','Earth','Mars','Venus','Jupiter','Saturn','Mercury','Neptune','Uranus',
     'Rocket','Astronaut','Comet','Star','Galaxy','Planet'] },
-  { id: 'fruit', name: 'Fruit', title: 'Fruit Salad', words: [
-    'Apple','Banana','Orange','Grape','Pear','Mango','Peach','Cherry','Lemon','Melon','Kiwi','Plum',
-    'Strawberry','Pineapple','Blueberry','Raspberry'] }
+  { id: 'world', group: 4, name: 'Around the world', title: 'Around the World', words: [
+    'Africa','Asia','Europe','Oceania','Antarctica','North America','South America','Pacific','Atlantic','Indian','Arctic','Equator','Island'] }
 ];
+const GROUPS = ['World Cup 2026', 'Seasonal', 'Animals', 'Everyday', 'Explore'];
 const COLORS = ['#FFD23F','#7BDFF2','#B2F7A0','#FFB5C7','#C9B6FF','#FFC27A','#9EE6CF','#A9C8FF'];
 
 const $ = s => document.querySelector(s);
@@ -690,13 +743,31 @@ function loadPreset(p, scroll) {
   updateWordCount();
   generate(scroll);
 }
-PRESETS.forEach(p => {
-  const b = document.createElement('button');
-  b.type = 'button'; b.className = 'chip'; b.dataset.id = p.id; b.textContent = p.name;
-  b.setAttribute('aria-pressed', 'false');
-  b.addEventListener('click', () => loadPreset(p, true));
-  el.presets.appendChild(b);
+// The first two groups show straight away; the rest sit under "More lists".
+const moreBody = document.createElement('div');
+moreBody.className = 'presets';
+GROUPS.forEach((name, gi) => {
+  const box = document.createElement('div');
+  const label = document.createElement('span');
+  const row = document.createElement('div');
+  label.className = 'plabel'; label.textContent = name;
+  row.className = 'chips';
+  PRESETS.filter(p => p.group === gi).forEach(p => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.dataset.id = p.id; b.textContent = p.name;
+    b.setAttribute('aria-pressed', 'false');
+    b.addEventListener('click', () => loadPreset(p, true));
+    row.appendChild(b);
+  });
+  box.appendChild(label); box.appendChild(row);
+  (gi < 2 ? el.presets : moreBody).appendChild(box);
 });
+const more = document.createElement('details');
+const moreSum = document.createElement('summary');
+moreSum.textContent = 'More lists';
+more.className = 'more';
+more.appendChild(moreSum); more.appendChild(moreBody);
+el.presets.appendChild(more);
 el.words.addEventListener('input', () => {
   document.querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', 'false'));
   updateWordCount();
