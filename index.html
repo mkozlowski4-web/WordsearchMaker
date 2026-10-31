@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Make your own word search puzzles from any list of words. Play on screen or print.">
+<meta name="description" content="Make your own word search puzzles from any list of words. Play on screen, print, or share a link.">
 <title>Wordsearch Maker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -115,6 +115,8 @@ textarea { min-height: 11rem; resize: vertical; line-height: 1.45; }
 .opt input:checked + .box { background: var(--sun); border-color: var(--edge); color: #13203B; }
 .opt input:checked + .box small { color: #13203B; }
 .opt input:focus-visible + .box { outline: 3px solid var(--sky); outline-offset: 2px; }
+.opt input:disabled { cursor: not-allowed; }
+.opt input:disabled + .box, select:disabled { opacity: .55; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
 .btn-primary {
@@ -154,21 +156,39 @@ textarea { min-height: 11rem; resize: vertical; line-height: 1.45; }
 .cell.found { background: var(--hl); color: #13203B; animation: pop .35s; }
 .cell.sel { background: var(--sel); }
 .cell.miss { animation: wobble .35s; }
+.cell.hint { background: var(--sun); color: #13203B; box-shadow: inset 0 0 0 3px var(--sky); animation: pop .5s; }
 @keyframes pop { 40% { transform: scale(1.18); } }
 @keyframes wobble { 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
 
 .words { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .words li {
-  padding: .25rem .75rem; font-weight: 600; font-size: 1.02rem; background: var(--paper);
+  font-weight: 600; font-size: 1.02rem; background: var(--paper);
   border: 2px solid var(--line); border-radius: 999px;
 }
-.words li.done { background: var(--hl); color: #13203B; border-color: transparent; text-decoration: line-through; }
+.words button {
+  font: inherit; color: inherit; background: none; border: 0; border-radius: 999px;
+  padding: .25rem .75rem; cursor: pointer;
+}
+.words li.done { background: var(--hl); color: #13203B; border-color: transparent; }
+.words li.done button { text-decoration: line-through; }
 .win {
   margin-top: 16px; padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 10px;
   justify-content: space-between; align-items: center; background: var(--sun); color: #13203B;
   border: 2px solid var(--edge); border-radius: 14px; font: 800 1.3rem var(--font-display);
 }
 .win .btn { color: #13203B; background: #FFFFFF; }
+.puzzle.kid .board { width: min(100%, calc(var(--n) * 4rem)); }
+.puzzle.kid .words li { font-size: 1.3rem; }
+.puzzle.kid .words button { padding: .35rem .95rem; }
+.kidrow {
+  display: flex; gap: 12px; align-items: flex-start; padding: 12px; background: var(--bg);
+  border: 2px dashed var(--line); border-radius: 12px; cursor: pointer;
+}
+.kidrow input { width: 1.4rem; height: 1.4rem; margin: .15rem 0 0; flex: none; accent-color: var(--pitch); }
+.kidrow b { display: block; font: 800 1.05rem/1.2 var(--font-display); }
+.kidrow small { display: block; font-size: .8rem; line-height: 1.35; color: var(--ink-soft); }
+.share { margin-top: 12px; }
+.share input { font-size: .85rem; }
 .notes { margin-top: 12px; font-size: .88rem; color: var(--ink-soft); }
 .notes p { margin: 2px 0; }
 .foot { max-width: 1120px; margin: 24px auto 0; font-size: .85rem; color: var(--ink-soft); }
@@ -182,7 +202,7 @@ textarea { min-height: 11rem; resize: vertical; line-height: 1.45; }
     --grid-line: transparent; --sel: #fff; --ans: #d4d4d4; color-scheme: light;
   }
   body { background-image: none; padding: 0; }
-  .top, .maker, .tools, .progress-wrap, .win, .foot, .notes, .meta { display: none !important; }
+  .top, .maker, .tools, .progress-wrap, .win, .foot, .notes, .meta, .share { display: none !important; }
   .layout { display: block; margin: 0; max-width: none; }
   .card { border: 0; box-shadow: none; padding: 0; }
   .print-only { display: block; margin: 14px 0 0; font-size: 1.1rem; }
@@ -191,7 +211,8 @@ textarea { min-height: 11rem; resize: vertical; line-height: 1.45; }
   .cell.found { background: var(--paper) !important; }
   .cell.ans { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .words { display: block; columns: 3; gap: 16px; }
-  .words li, .words li.done { display: block; border: 0; border-radius: 0; background: none; text-decoration: none; padding: .1rem 0; }
+  .words li, .words li.done { display: block; border: 0; border-radius: 0; background: none; padding: 0; font-size: 1.05rem; }
+  .words button, .words li.done button { padding: .1rem 0; text-decoration: none; }
 }
 </style>
 </head>
@@ -217,6 +238,10 @@ textarea { min-height: 11rem; resize: vertical; line-height: 1.45; }
       <textarea id="words" rows="9" spellcheck="false" aria-describedby="wordCount"></textarea>
       <p class="hint" id="wordCount"></p>
     </div>
+    <label class="kidrow" for="kid">
+      <input type="checkbox" id="kid" checked>
+      <span><b>Little hands mode</b><small>Easy, 6 words and bigger letters. Tap a word to hear it and see its first letter.</small></span>
+    </label>
     <fieldset class="field">
       <legend class="lbl">How hard?</legend>
       <div class="seg">
@@ -256,6 +281,7 @@ textarea { min-height: 11rem; resize: vertical; line-height: 1.45; }
       <div class="tools">
         <button class="btn" type="button" id="shuffle">Shuffle</button>
         <button class="btn" type="button" id="answers" aria-pressed="false">Show answers</button>
+        <button class="btn" type="button" id="shareBtn">Share</button>
         <button class="btn" type="button" id="printBtn">Print</button>
       </div>
     </div>
@@ -269,6 +295,11 @@ textarea { min-height: 11rem; resize: vertical; line-height: 1.45; }
     <div class="win" id="win" role="status" hidden>
       <span id="winText"></span>
       <button class="btn" type="button" id="again">Play again</button>
+    </div>
+    <div class="share" id="shareBox" hidden>
+      <label class="lbl" for="shareUrl">Link to this puzzle</label>
+      <input id="shareUrl" type="text" readonly>
+      <p class="hint" id="shareMsg" role="status"></p>
     </div>
     <div class="notes" id="notes"></div>
   </section>
@@ -386,6 +417,74 @@ function line(a, b, n) {
   }
   return out;
 }
+/* Share links: the exact puzzle (grid and word positions) packed into URL-safe text. */
+function b64e(s) {
+  const bytes = new TextEncoder().encode(s);
+  let bin = '';
+  bytes.forEach(x => { bin += String.fromCharCode(x); });
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function b64d(s) {
+  s = s.replace(/-/g, '+').replace(/_/g, '/');
+  while (s.length % 4) s += '=';
+  const bin = atob(s);
+  const a = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(a);
+}
+function encodePuzzle(title, grid, placed, kid) {
+  const w = placed.map(p => [p.label, p.cells[0][0], p.cells[0][1],
+    p.cells[1][0] - p.cells[0][0], p.cells[1][1] - p.cells[0][1]]);
+  return b64e(JSON.stringify({ t: title, n: grid.length, g: grid.map(r => r.join('')).join(''), w: w, k: kid ? 1 : 0 }));
+}
+// Returns null for anything that is not a valid puzzle, so a damaged link never breaks the page.
+function decodePuzzle(code) {
+  try {
+    const d = JSON.parse(b64d(code));
+    const n = d.n;
+    if (!Number.isInteger(n) || n < 4 || n > MAX_SIZE) return null;
+    if (typeof d.g !== 'string' || d.g.length !== n * n || !/^[A-Z]+$/.test(d.g)) return null;
+    if (!Array.isArray(d.w) || !d.w.length || d.w.length > 60) return null;
+    const grid = [];
+    for (let r = 0; r < n; r++) grid.push(d.g.slice(r * n, r * n + n).split(''));
+    const placed = [];
+    for (const x of d.w) {
+      if (!Array.isArray(x) || x.length !== 5) return null;
+      const label = x[0], r = x[1], c = x[2], dr = x[3], dc = x[4];
+      if (typeof label !== 'string' || label.length > 40) return null;
+      const key = normalise(label);
+      if (key.length < 2 || ![r, c, dr, dc].every(Number.isInteger)) return null;
+      if (Math.abs(dr) > 1 || Math.abs(dc) > 1 || (!dr && !dc)) return null;
+      const cells = [];
+      for (let i = 0; i < key.length; i++) {
+        const rr = r + dr * i, cc = c + dc * i;
+        if (rr < 0 || cc < 0 || rr >= n || cc >= n || grid[rr][cc] !== key[i]) return null;
+        cells.push([rr, cc]);
+      }
+      placed.push({ label, key, cells });
+    }
+    return { title: String(d.t || '').slice(0, 60), n, grid, placed, kid: d.k === 1 };
+  } catch (err) { return null; }
+}
+
+/* Flags for the World Cup teams, looked up by the word's letters so edited spellings still match. */
+const ISO = {
+  'Mexico':'MX','South Africa':'ZA','South Korea':'KR','Korea Republic':'KR','Czechia':'CZ','Czech Republic':'CZ',
+  'Canada':'CA','Bosnia':'BA','Bosnia and Herzegovina':'BA','Qatar':'QA','Switzerland':'CH','Brazil':'BR',
+  'Morocco':'MA','Haiti':'HT','Scotland':'#S','USA':'US','United States':'US','Paraguay':'PY','Australia':'AU',
+  'Turkey':'TR','Turkiye':'TR','Germany':'DE','Curacao':'CW','Ivory Coast':'CI','Cote d Ivoire':'CI','Ecuador':'EC',
+  'Netherlands':'NL','Holland':'NL','Japan':'JP','Sweden':'SE','Tunisia':'TN','Belgium':'BE','Egypt':'EG','Iran':'IR',
+  'New Zealand':'NZ','Spain':'ES','Cape Verde':'CV','Cabo Verde':'CV','Saudi Arabia':'SA','Uruguay':'UY','France':'FR',
+  'Senegal':'SN','Iraq':'IQ','Norway':'NO','Argentina':'AR','Algeria':'DZ','Austria':'AT','Jordan':'JO','Portugal':'PT',
+  'DR Congo':'CD','Congo DR':'CD','Uzbekistan':'UZ','Colombia':'CO','England':'#E','Croatia':'HR','Ghana':'GH','Panama':'PA'
+};
+function flagOf(code) {
+  if (code === '#S') return '\u{1F3F4}\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}';
+  if (code === '#E') return '\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}';
+  return String.fromCodePoint.apply(null, code.split('').map(ch => 0x1F1A5 + ch.charCodeAt(0)));
+}
+const FLAGS = {};
+Object.keys(ISO).forEach(name => { FLAGS[normalise(name)] = flagOf(ISO[name]); });
 /*PURE_END*/
 
 const PRESETS = [
@@ -417,7 +516,8 @@ const el = {
   title: $('#title'), words: $('#words'), count: $('#count'), size: $('#size'), wordCount: $('#wordCount'),
   presets: $('#presets'), pTitle: $('#pTitle'), meta: $('#meta'), board: $('#board'), cells: $('#cells'),
   list: $('#wordList'), bar: $('#bar'), prog: $('#progText'), win: $('#win'), winText: $('#winText'),
-  notes: $('#notes'), answers: $('#answers'), puzzle: $('#puzzle')
+  notes: $('#notes'), answers: $('#answers'), puzzle: $('#puzzle'), kid: $('#kid'),
+  shareBox: $('#shareBox'), shareUrl: $('#shareUrl'), shareMsg: $('#shareMsg')
 };
 const level = () => document.querySelector('input[name="level"]:checked').value;
 let P = null, cellEls = [], anchor = null, dragStart = null;
@@ -455,7 +555,9 @@ function generate(scroll) {
   if (parsed.skipped.length) {
     notes.push('Left out because they need two or more letters: ' + parsed.skipped.join(', ') + '.');
   }
-  P = { size: res.size, grid: res.grid, placed: res.placed, showAnswers: false, levelName: LEVELS[level()].name };
+  P = { size: res.size, grid: res.grid, placed: res.placed, showAnswers: false, kid: el.kid.checked,
+        levelName: el.kid.checked ? 'Little hands' : LEVELS[level()].name };
+  el.shareBox.hidden = true;
   anchor = null; dragStart = null;
   el.answers.setAttribute('aria-pressed', 'false');
   el.answers.textContent = 'Show answers';
@@ -470,6 +572,7 @@ function generate(scroll) {
 function render() {
   const n = P.size;
   el.board.style.setProperty('--n', n);
+  el.puzzle.classList.toggle('kid', !!P.kid);
   el.cells.innerHTML = P.grid.map((row, r) =>
     row.map((ch, c) => '<div class="cell" data-r="' + r + '" data-c="' + c + '">' + ch + '</div>').join('')
   ).join('');
@@ -477,7 +580,11 @@ function render() {
   el.list.textContent = '';
   P.placed.forEach(w => {
     const li = document.createElement('li');
-    li.textContent = w.label;
+    const b = document.createElement('button');
+    const flag = FLAG_OK ? FLAGS[w.key] : '';
+    b.type = 'button';
+    b.textContent = (flag ? flag + ' ' : '') + w.label;
+    li.appendChild(b);
     w.li = li;
     el.list.appendChild(li);
   });
@@ -508,6 +615,7 @@ function markFound(w) {
   });
   w.li.classList.add('done');
   w.li.style.setProperty('--hl', color);
+  if (P.kid) speak(w.label);
   updateProgress();
   if (P.placed.every(x => x.found)) {
     el.winText.textContent = 'You found all ' + P.placed.length + ' words!';
@@ -576,7 +684,8 @@ document.addEventListener('keydown', e => {
 function loadPreset(p, scroll) {
   el.title.value = p.title;
   el.words.value = p.words.join('\n');
-  el.count.value = p.words.length > 16 ? '12' : 'all';
+  const wanted = p.words.length > 16 ? '12' : 'all';
+  if (el.kid.checked) prevCount = wanted; else el.count.value = wanted;
   document.querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.id === p.id)));
   updateWordCount();
   generate(scroll);
@@ -605,7 +714,112 @@ el.answers.addEventListener('click', () => {
 const printBtn = $('#printBtn');
 if (printBtn) printBtn.addEventListener('click', () => window.print());
 
-loadPreset(PRESETS[0], false);
+/* Little hands mode: easy, 6 words, bigger letters, tap a word for a hint and to hear it. */
+let prevLevel = 'easy', prevCount = '12';
+function syncKid() {
+  const radios = document.querySelectorAll('input[name="level"]');
+  if (el.kid.checked) {
+    if (!radios[0].disabled) { prevLevel = level(); prevCount = el.count.value; }
+    radios.forEach(r => { r.checked = r.value === 'easy'; r.disabled = true; });
+    el.count.value = '6';
+    el.count.disabled = true;
+  } else {
+    radios.forEach(r => { r.disabled = false; r.checked = r.value === prevLevel; });
+    el.count.disabled = false;
+    el.count.value = prevCount;
+  }
+}
+function speak(text) {
+  try {
+    if (!window.speechSynthesis) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-GB'; u.rate = 0.85;
+    speechSynthesis.speak(u);
+  } catch (err) { /* speech is optional */ }
+}
+el.kid.addEventListener('change', () => { syncKid(); generate(false); });
+el.list.addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b || !P) return;
+  const w = P.placed.find(x => x.li === b.parentNode);
+  if (!w) return;
+  if (P.kid) speak(w.label);
+  if (!w.found) {
+    const c = cellEls[w.cells[0][0] * P.size + w.cells[0][1]];
+    c.classList.add('hint');
+    setTimeout(() => c.classList.remove('hint'), 1500);
+  }
+});
+
+/* Flags only show where the device can draw them (Windows desktops show letters instead). */
+function flagsOK() {
+  try {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 32;
+    const x = cv.getContext('2d', { willReadFrequently: true });
+    x.textBaseline = 'top'; x.font = '24px sans-serif'; x.fillStyle = '#000';
+    x.fillText(flagOf('FR'), 0, 0);
+    const d = x.getImageData(0, 0, 32, 32).data;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] > 0 && (Math.abs(d[i] - d[i + 1]) > 40 || Math.abs(d[i + 1] - d[i + 2]) > 40)) return true;
+    }
+  } catch (err) { /* no canvas, no flags */ }
+  return false;
+}
+const FLAG_OK = flagsOK();
+
+/* Share by link (the Share button only exists on the hosted site). */
+function share() {
+  if (!P) return;
+  const url = location.href.split('#')[0] + '#p=' + encodePuzzle(el.pTitle.textContent, P.grid, P.placed, P.kid);
+  el.shareUrl.value = url;
+  el.shareBox.hidden = false;
+  el.shareUrl.focus();
+  el.shareUrl.select();
+  el.shareMsg.textContent = 'Select the link above and copy it.';
+  try {
+    navigator.clipboard.writeText(url).then(
+      () => { el.shareMsg.textContent = 'Link copied. Anyone who opens it gets this exact puzzle.'; },
+      () => {});
+  } catch (err) { /* the manual message stays */ }
+}
+const shareBtn = $('#shareBtn');
+if (shareBtn) shareBtn.addEventListener('click', share);
+
+let brokenLink = false;
+function loadFromHash() {
+  if (location.hash.indexOf('#p=') !== 0) return false;
+  const d = decodePuzzle(location.hash.slice(3));
+  if (!d) { brokenLink = true; return false; }
+  el.title.value = d.title;
+  el.words.value = d.placed.map(w => w.label).join('\n');
+  el.kid.checked = d.kid;
+  syncKid();
+  document.querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', 'false'));
+  updateWordCount();
+  d.placed.forEach((w, i) => { w.i = i; w.ci = i % COLORS.length; w.found = false; });
+  P = { size: d.n, grid: d.grid, placed: d.placed, showAnswers: false, kid: d.kid, levelName: 'Shared puzzle' };
+  anchor = null; dragStart = null;
+  el.answers.setAttribute('aria-pressed', 'false');
+  el.answers.textContent = 'Show answers';
+  el.win.hidden = true;
+  el.shareBox.hidden = true;
+  setNotes(['Someone shared this puzzle with you. Use the form to make your own.']);
+  render();
+  return true;
+}
+window.addEventListener('hashchange', loadFromHash);
+
+syncKid();
+if (!loadFromHash()) {
+  loadPreset(PRESETS[0], false);
+  if (brokenLink) {
+    const p = document.createElement('p');
+    p.textContent = 'That puzzle link looks damaged, so here is a new puzzle instead.';
+    el.notes.insertBefore(p, el.notes.firstChild);
+  }
+}
 })();
 </script>
 
