@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Make your own word search puzzles from any list of words. Play on screen or print.">
+<title>Wordsearch Maker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Lexend:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: squared exercise-book page. Maker card on the left, puzzle card on the right, stacked on phones. */
+:root {
+  --bg: #EEF3FB;
+  --grid-line: #DCE5F4;
+  --paper: #FFFFFF;
+  --ink: #13203B;
+  --ink-soft: #52617F;
+  --line: #CBD6EA;
+  --edge: #13203B;
+  --pitch: #14995A;
+  --on-pitch: #FFFFFF;
+  --sun: #FFD23F;
+  --sky: #2F6FED;
+  --sel: #BCD3FF;
+  --ans: #FFE98A;
+  --font-display: "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  --font-body: "Lexend", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0C1322; --grid-line: #141E35; --paper: #152038; --ink: #E9EFFF; --ink-soft: #9DABC9;
+    --line: #2B3A5C; --edge: #3C4F7D; --pitch: #2DBE78; --on-pitch: #05231A; --sky: #7AA2FF;
+    --sel: #2C4A86; --ans: #5C4B0A; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0C1322; --grid-line: #141E35; --paper: #152038; --ink: #E9EFFF; --ink-soft: #9DABC9;
+  --line: #2B3A5C; --edge: #3C4F7D; --pitch: #2DBE78; --on-pitch: #05231A; --sky: #7AA2FF;
+  --sel: #2C4A86; --ans: #5C4B0A; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 28px 28px;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+}
+:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+
+.top { max-width: 1120px; margin: 0 auto; }
+.top h1 {
+  margin: 0; font: 800 clamp(2.1rem, 7vw, 3.4rem)/1.05 var(--font-display);
+  text-wrap: balance;
+}
+.mark {
+  background: linear-gradient(transparent 55%, var(--sun) 55%, var(--sun) 92%, transparent 92%);
+  padding: 0 .1em;
+}
+.top p { margin: 8px 0 0; max-width: 46ch; color: var(--ink-soft); }
+
+.layout {
+  display: grid; gap: 24px; max-width: 1120px; margin: 24px auto 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 900px) {
+  .layout { grid-template-columns: 340px minmax(0, 1fr); align-items: start; }
+}
+.card {
+  background: var(--paper); border: 2px solid var(--edge); border-radius: 18px;
+  padding: 18px; box-shadow: 4px 4px 0 var(--edge); min-width: 0;
+}
+
+/* Maker */
+.maker { display: flex; flex-direction: column; gap: 18px; }
+.field { min-width: 0; margin: 0; padding: 0; border: 0; }
+.lbl {
+  display: block; padding: 0; margin-bottom: 6px; font-weight: 600; font-size: .78rem;
+  letter-spacing: .07em; text-transform: uppercase; color: var(--ink-soft);
+}
+input[type="text"], textarea, select {
+  width: 100%; font: inherit; color: var(--ink); background: var(--paper);
+  border: 2px solid var(--line); border-radius: 10px; padding: .55rem .7rem;
+}
+textarea { min-height: 11rem; resize: vertical; line-height: 1.45; }
+.hint { margin: 6px 0 0; font-size: .85rem; color: var(--ink-soft); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  font: 600 .88rem var(--font-body); padding: .35rem .8rem; color: var(--ink);
+  background: var(--paper); border: 2px solid var(--edge); border-radius: 999px; cursor: pointer;
+}
+.chip:hover { transform: translateY(-1px); }
+.chip[aria-pressed="true"] { background: var(--sun); color: #13203B; }
+
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.opt { position: relative; min-width: 0; }
+.opt input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.box {
+  display: block; height: 100%; padding: .5rem .3rem; text-align: center; background: var(--paper);
+  border: 2px solid var(--line); border-radius: 12px;
+}
+.box b { display: block; font: 800 1.05rem/1.2 var(--font-display); }
+.box small { display: block; font-size: .72rem; line-height: 1.25; color: var(--ink-soft); }
+.opt input:checked + .box { background: var(--sun); border-color: var(--edge); color: #13203B; }
+.opt input:checked + .box small { color: #13203B; }
+.opt input:focus-visible + .box { outline: 3px solid var(--sky); outline-offset: 2px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.btn-primary {
+  width: 100%; font: 800 1.2rem var(--font-display); padding: .6rem 1rem; cursor: pointer;
+  color: var(--on-pitch); background: var(--pitch); border: 2px solid var(--edge); border-radius: 14px;
+  box-shadow: 0 4px 0 var(--edge);
+}
+.btn-primary:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--edge); }
+.btn {
+  font: 600 .9rem var(--font-body); padding: .45rem .9rem; cursor: pointer; color: var(--ink);
+  background: var(--paper); border: 2px solid var(--edge); border-radius: 10px;
+}
+.btn:hover { background: var(--bg); }
+.btn[aria-pressed="true"] { background: var(--sun); color: #13203B; }
+
+/* Puzzle */
+.puz-head { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: flex-end; }
+.puz-head h2 { margin: 0; font: 800 clamp(1.5rem, 4.5vw, 2rem)/1.1 var(--font-display); text-wrap: balance; }
+.meta { margin: 2px 0 0; font-size: .88rem; color: var(--ink-soft); }
+.tools { display: flex; flex-wrap: wrap; gap: 8px; }
+.progress-wrap { margin-top: 14px; }
+.progress-text { font-weight: 600; font-size: .9rem; margin-bottom: 4px; }
+.progress { height: 10px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.bar { height: 100%; width: 0; background: var(--pitch); transition: width .3s; }
+
+.board { --n: 12; width: min(100%, calc(var(--n) * 3rem)); margin: 16px auto; container-type: inline-size; }
+.cells {
+  display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 1px; background: var(--line);
+  border: 2px solid var(--edge); border-radius: 12px; overflow: hidden;
+  touch-action: none; user-select: none; -webkit-user-select: none;
+}
+.cell {
+  aspect-ratio: 1; display: grid; place-items: center; background: var(--paper); cursor: pointer;
+  font: 600 calc(100cqw / var(--n) * .52)/1 var(--font-body);
+}
+.cell.ans { background: var(--ans); }
+.cell.found { background: var(--hl); color: #13203B; animation: pop .35s; }
+.cell.sel { background: var(--sel); }
+.cell.miss { animation: wobble .35s; }
+@keyframes pop { 40% { transform: scale(1.18); } }
+@keyframes wobble { 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+
+.words { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.words li {
+  padding: .25rem .75rem; font-weight: 600; font-size: 1.02rem; background: var(--paper);
+  border: 2px solid var(--line); border-radius: 999px;
+}
+.words li.done { background: var(--hl); color: #13203B; border-color: transparent; text-decoration: line-through; }
+.win {
+  margin-top: 16px; padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 10px;
+  justify-content: space-between; align-items: center; background: var(--sun); color: #13203B;
+  border: 2px solid var(--edge); border-radius: 14px; font: 800 1.3rem var(--font-display);
+}
+.win .btn { color: #13203B; background: #FFFFFF; }
+.notes { margin-top: 12px; font-size: .88rem; color: var(--ink-soft); }
+.notes p { margin: 2px 0; }
+.foot { max-width: 1120px; margin: 24px auto 0; font-size: .85rem; color: var(--ink-soft); }
+.print-only { display: none; }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+@media print {
+  :root, :root[data-theme] {
+    --bg: #fff; --paper: #fff; --ink: #000; --ink-soft: #333; --line: #999; --edge: #000;
+    --grid-line: transparent; --sel: #fff; --ans: #d4d4d4; color-scheme: light;
+  }
+  body { background-image: none; padding: 0; }
+  .top, .maker, .tools, .progress-wrap, .win, .foot, .notes, .meta { display: none !important; }
+  .layout { display: block; margin: 0; max-width: none; }
+  .card { border: 0; box-shadow: none; padding: 0; }
+  .print-only { display: block; margin: 14px 0 0; font-size: 1.1rem; }
+  .board { width: min(100%, 17cm); }
+  .cell { animation: none; }
+  .cell.found { background: var(--paper) !important; }
+  .cell.ans { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .words { display: block; columns: 3; gap: 16px; }
+  .words li, .words li.done { display: block; border: 0; border-radius: 0; background: none; text-decoration: none; padding: .1rem 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1><span class="mark">Wordsearch</span> Maker</h1>
+  <p>Make a puzzle from any list of words. Tap two letters, or drag across them, to find each word.</p>
+</header>
+
+<main class="layout">
+  <form class="card maker" id="maker" autocomplete="off">
+    <div class="field">
+      <span class="lbl">Start with a list</span>
+      <div class="chips" id="presets"></div>
+    </div>
+    <div class="field">
+      <label class="lbl" for="title">Puzzle title</label>
+      <input id="title" type="text" maxlength="60">
+    </div>
+    <div class="field">
+      <label class="lbl" for="words">Your words</label>
+      <textarea id="words" rows="9" spellcheck="false" aria-describedby="wordCount"></textarea>
+      <p class="hint" id="wordCount"></p>
+    </div>
+    <fieldset class="field">
+      <legend class="lbl">How hard?</legend>
+      <div class="seg">
+        <label class="opt"><input type="radio" name="level" value="easy" checked><span class="box"><b>Easy</b><small>Across and down</small></span></label>
+        <label class="opt"><input type="radio" name="level" value="medium"><span class="box"><b>Medium</b><small>Plus diagonals</small></span></label>
+        <label class="opt"><input type="radio" name="level" value="hard"><span class="box"><b>Hard</b><small>Any way round</small></span></label>
+      </div>
+    </fieldset>
+    <div class="row2">
+      <div class="field">
+        <label class="lbl" for="size">Grid size</label>
+        <select id="size">
+          <option value="auto" selected>Automatic</option>
+          <option value="8">8 × 8</option><option value="10">10 × 10</option><option value="12">12 × 12</option>
+          <option value="14">14 × 14</option><option value="16">16 × 16</option><option value="18">18 × 18</option>
+          <option value="20">20 × 20</option><option value="24">24 × 24</option><option value="28">28 × 28</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="lbl" for="count">Words to find</label>
+        <select id="count">
+          <option value="all">All of them</option>
+          <option value="6">6</option><option value="8">8</option><option value="10">10</option>
+          <option value="12" selected>12</option><option value="16">16</option><option value="20">20</option><option value="30">30</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-primary" type="submit">Make my puzzle</button>
+  </form>
+
+  <section class="card puzzle" id="puzzle" aria-labelledby="pTitle">
+    <div class="puz-head">
+      <div>
+        <h2 id="pTitle"></h2>
+        <p class="meta" id="meta"></p>
+      </div>
+      <div class="tools">
+        <button class="btn" type="button" id="shuffle">Shuffle</button>
+        <button class="btn" type="button" id="answers" aria-pressed="false">Show answers</button>
+        <button class="btn" type="button" id="printBtn">Print</button>
+      </div>
+    </div>
+    <p class="print-only">Name: ______________________ &nbsp;&nbsp; Date: ______________</p>
+    <div class="progress-wrap">
+      <div class="progress-text" id="progText" role="status"></div>
+      <div class="progress"><div class="bar" id="bar"></div></div>
+    </div>
+    <div class="board" id="board"><div class="cells" id="cells" aria-label="Word search grid"></div></div>
+    <ul class="words" id="wordList" aria-label="Words to find"></ul>
+    <div class="win" id="win" role="status" hidden>
+      <span id="winText"></span>
+      <button class="btn" type="button" id="again">Play again</button>
+    </div>
+    <div class="notes" id="notes"></div>
+  </section>
+</main>
+<p class="foot">Your word lists stay in your browser. Nothing is uploaded.</p>
+
+<script>
+(function () {
+'use strict';
+
+/*PURE_START*/
+const LEVELS = {
+  easy:   { name: 'Easy',   f: 2.6, dirs: [[0,1],[1,0]] },
+  medium: { name: 'Medium', f: 2.1, dirs: [[0,1],[1,0],[1,1],[-1,1]] },
+  hard:   { name: 'Hard',   f: 1.9, dirs: [[0,1],[1,0],[1,1],[-1,1],[0,-1],[-1,0],[-1,-1],[1,-1]] }
+};
+const MAX_SIZE = 30, MIN_SIZE = 8;
+
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = (Math.random() * (i + 1)) | 0;
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function normalise(s) {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z]/g, '');
+}
+function parseWords(text) {
+  const seen = new Set(), words = [], skipped = [];
+  text.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean).forEach(label => {
+    const key = normalise(label);
+    if (key.length < 2) { skipped.push(label); return; }
+    if (seen.has(key)) return;
+    seen.add(key);
+    words.push({ label, key });
+  });
+  return { words, skipped };
+}
+function span(d, L, size) {
+  return d === 1 ? [0, size - L] : d === -1 ? [L - 1, size - 1] : [0, size - 1];
+}
+function tryBuild(words, size, dirs) {
+  const g = Array.from({ length: size }, () => Array(size).fill(''));
+  const placed = [], failed = [];
+  const order = shuffle(words.slice()).sort((a, b) => b.key.length - a.key.length);
+  for (const w of order) {
+    const L = w.key.length;
+    let ok = false;
+    if (L <= size) {
+      for (let t = 0; t < 250 && !ok; t++) {
+        const d = dirs[(Math.random() * dirs.length) | 0];
+        const rs = span(d[0], L, size), cs = span(d[1], L, size);
+        const r = rs[0] + ((Math.random() * (rs[1] - rs[0] + 1)) | 0);
+        const c = cs[0] + ((Math.random() * (cs[1] - cs[0] + 1)) | 0);
+        let fits = true;
+        for (let i = 0; i < L; i++) {
+          const ch = g[r + d[0] * i][c + d[1] * i];
+          if (ch && ch !== w.key[i]) { fits = false; break; }
+        }
+        if (!fits) continue;
+        const cells = [];
+        for (let i = 0; i < L; i++) {
+          g[r + d[0] * i][c + d[1] * i] = w.key[i];
+          cells.push([r + d[0] * i, c + d[1] * i]);
+        }
+        placed.push(Object.assign({}, w, { cells }));
+        ok = true;
+      }
+    }
+    if (!ok) failed.push(w);
+  }
+  return { g, placed, failed };
+}
+function buildBest(words, size, dirs, tries) {
+  let best = null;
+  for (let i = 0; i < tries; i++) {
+    const r = tryBuild(words, size, dirs);
+    if (!best || r.failed.length < best.failed.length) best = r;
+    if (!r.failed.length) break;
+  }
+  return best;
+}
+function makePuzzle(pool, levelKey, sizeSetting) {
+  const level = LEVELS[levelKey];
+  const total = pool.reduce((s, w) => s + w.key.length, 0);
+  const longest = Math.max.apply(null, pool.map(w => w.key.length));
+  let size, res;
+  if (sizeSetting === 'auto') {
+    size = Math.min(MAX_SIZE, Math.max(MIN_SIZE, longest, Math.ceil(Math.sqrt(total * level.f))));
+    for (;;) {
+      res = buildBest(pool, size, level.dirs, 12);
+      if (!res.failed.length || size >= MAX_SIZE) break;
+      size++;
+    }
+  } else {
+    size = +sizeSetting;
+    res = buildBest(pool, size, level.dirs, 30);
+  }
+  const grid = res.g.map(row => row.map(ch => ch || String.fromCharCode(65 + ((Math.random() * 26) | 0))));
+  return { size, grid, placed: res.placed, failed: res.failed };
+}
+// The straight line of cells from a to b, snapped to the nearest of 8 directions and kept inside the grid.
+function line(a, b, n) {
+  const dr = b.r - a.r, dc = b.c - a.c;
+  if (!dr && !dc) return [{ r: a.r, c: a.c }];
+  const k = Math.round(Math.atan2(dr, dc) / (Math.PI / 4));
+  const sr = Math.round(Math.sin(k * Math.PI / 4)), sc = Math.round(Math.cos(k * Math.PI / 4));
+  const len = Math.round((dr * sr + dc * sc) / (sr * sr + sc * sc));
+  const out = [{ r: a.r, c: a.c }];
+  for (let i = 1; i <= len; i++) {
+    const r = a.r + sr * i, c = a.c + sc * i;
+    if (r < 0 || c < 0 || r >= n || c >= n) break;
+    out.push({ r, c });
+  }
+  return out;
+}
+/*PURE_END*/
+
+const PRESETS = [
+  { id: 'wc', name: 'World Cup 2026', title: 'World Cup 2026 Teams', words: [
+    'Mexico','South Africa','South Korea','Czechia','Canada','Bosnia','Qatar','Switzerland',
+    'Brazil','Morocco','Haiti','Scotland','USA','Paraguay','Australia','Turkey',
+    'Germany','Curaçao','Ivory Coast','Ecuador','Netherlands','Japan','Sweden','Tunisia',
+    'Belgium','Egypt','Iran','New Zealand','Spain','Cape Verde','Saudi Arabia','Uruguay',
+    'France','Senegal','Iraq','Norway','Argentina','Algeria','Austria','Jordan',
+    'Portugal','DR Congo','Uzbekistan','Colombia','England','Croatia','Ghana','Panama'] },
+  { id: 'farm', name: 'Farm animals', title: 'On the Farm', words: [
+    'Cow','Pig','Sheep','Horse','Goat','Duck','Chicken','Donkey','Goose','Rabbit','Farmer','Tractor','Barn'] },
+  { id: 'colours', name: 'Colours', title: 'Colours', words: [
+    'Red','Blue','Green','Yellow','Orange','Purple','Pink','Brown','Black','White','Grey','Gold','Silver'] },
+  { id: 'dino', name: 'Dinosaurs', title: 'Dinosaurs', words: [
+    'T Rex','Triceratops','Stegosaurus','Velociraptor','Brachiosaurus','Diplodocus','Spinosaurus',
+    'Ankylosaurus','Pterodactyl','Allosaurus','Fossil','Egg'] },
+  { id: 'space', name: 'Space', title: 'Out of This World', words: [
+    'Sun','Moon','Earth','Mars','Venus','Jupiter','Saturn','Mercury','Neptune','Uranus',
+    'Rocket','Astronaut','Comet','Star','Galaxy','Planet'] },
+  { id: 'fruit', name: 'Fruit', title: 'Fruit Salad', words: [
+    'Apple','Banana','Orange','Grape','Pear','Mango','Peach','Cherry','Lemon','Melon','Kiwi','Plum',
+    'Strawberry','Pineapple','Blueberry','Raspberry'] }
+];
+const COLORS = ['#FFD23F','#7BDFF2','#B2F7A0','#FFB5C7','#C9B6FF','#FFC27A','#9EE6CF','#A9C8FF'];
+
+const $ = s => document.querySelector(s);
+const el = {
+  title: $('#title'), words: $('#words'), count: $('#count'), size: $('#size'), wordCount: $('#wordCount'),
+  presets: $('#presets'), pTitle: $('#pTitle'), meta: $('#meta'), board: $('#board'), cells: $('#cells'),
+  list: $('#wordList'), bar: $('#bar'), prog: $('#progText'), win: $('#win'), winText: $('#winText'),
+  notes: $('#notes'), answers: $('#answers'), puzzle: $('#puzzle')
+};
+const level = () => document.querySelector('input[name="level"]:checked').value;
+let P = null, cellEls = [], anchor = null, dragStart = null;
+
+function updateWordCount() {
+  const n = parseWords(el.words.value).words.length;
+  el.wordCount.textContent = n + (n === 1 ? ' word' : ' words') + '. One per line. Spaces and accents are fine.';
+}
+
+function setNotes(lines) {
+  el.notes.textContent = '';
+  lines.forEach(t => { const p = document.createElement('p'); p.textContent = t; el.notes.appendChild(p); });
+}
+
+function generate(scroll) {
+  const parsed = parseWords(el.words.value);
+  if (parsed.words.length < 2) {
+    setNotes(['Add at least two words, one per line, then make your puzzle.']);
+    return;
+  }
+  const notes = [];
+  parsed.words.forEach((w, i) => { w.i = i; });
+  let pool = parsed.words;
+  const limit = el.count.value === 'all' ? Infinity : +el.count.value;
+  if (pool.length > limit) {
+    pool = shuffle(pool.slice()).slice(0, limit);
+    notes.push('Using ' + limit + ' of your ' + parsed.words.length + ' words. Press Shuffle for a different mix.');
+  }
+  const res = makePuzzle(pool, level(), el.size.value);
+  res.placed.sort((a, b) => a.i - b.i);
+  res.placed.forEach((w, i) => { w.ci = i % COLORS.length; w.found = false; });
+  if (res.failed.length) {
+    notes.push("These didn't fit: " + res.failed.map(w => w.label).join(', ') + '. Try a bigger grid or fewer words.');
+  }
+  if (parsed.skipped.length) {
+    notes.push('Left out because they need two or more letters: ' + parsed.skipped.join(', ') + '.');
+  }
+  P = { size: res.size, grid: res.grid, placed: res.placed, showAnswers: false, levelName: LEVELS[level()].name };
+  anchor = null; dragStart = null;
+  el.answers.setAttribute('aria-pressed', 'false');
+  el.answers.textContent = 'Show answers';
+  el.win.hidden = true;
+  setNotes(notes);
+  render();
+  if (scroll && window.innerWidth < 900) {
+    el.puzzle.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  }
+}
+
+function render() {
+  const n = P.size;
+  el.board.style.setProperty('--n', n);
+  el.cells.innerHTML = P.grid.map((row, r) =>
+    row.map((ch, c) => '<div class="cell" data-r="' + r + '" data-c="' + c + '">' + ch + '</div>').join('')
+  ).join('');
+  cellEls = Array.prototype.slice.call(el.cells.children);
+  el.list.textContent = '';
+  P.placed.forEach(w => {
+    const li = document.createElement('li');
+    li.textContent = w.label;
+    w.li = li;
+    el.list.appendChild(li);
+  });
+  el.pTitle.textContent = el.title.value.trim() || 'My word search';
+  el.meta.textContent = n + ' × ' + n + ' grid · ' + P.placed.length + ' words · ' + P.levelName;
+  updateProgress();
+}
+
+function updateProgress() {
+  const found = P.placed.filter(w => w.found).length, total = P.placed.length;
+  el.prog.textContent = found + ' of ' + total + ' found';
+  el.bar.style.width = (total ? (found / total) * 100 : 0) + '%';
+}
+
+function paintAnswers() {
+  cellEls.forEach(c => c.classList.remove('ans'));
+  if (!P.showAnswers) return;
+  P.placed.forEach(w => w.cells.forEach(p => cellEls[p[0] * P.size + p[1]].classList.add('ans')));
+}
+
+function markFound(w) {
+  w.found = true;
+  const color = COLORS[w.ci];
+  w.cells.forEach(p => {
+    const c = cellEls[p[0] * P.size + p[1]];
+    c.classList.add('found');
+    c.style.setProperty('--hl', color);
+  });
+  w.li.classList.add('done');
+  w.li.style.setProperty('--hl', color);
+  updateProgress();
+  if (P.placed.every(x => x.found)) {
+    el.winText.textContent = 'You found all ' + P.placed.length + ' words!';
+    el.win.hidden = false;
+  }
+}
+
+/* Selecting: drag across letters, or tap a first letter and then a last letter. */
+function cellAt(x, y) {
+  const t = document.elementFromPoint(x, y);
+  const c = t && t.closest ? t.closest('.cell') : null;
+  return c ? { r: +c.dataset.r, c: +c.dataset.c } : null;
+}
+function showSel(cells) {
+  cellEls.forEach(c => c.classList.remove('sel'));
+  cells.forEach(p => cellEls[p.r * P.size + p.c].classList.add('sel'));
+}
+function clearSel() { cellEls.forEach(c => c.classList.remove('sel')); }
+function finish(sel) {
+  clearSel();
+  if (sel.length < 2) return;
+  const str = sel.map(p => P.grid[p.r][p.c]).join('');
+  const rev = str.split('').reverse().join('');
+  const hit = P.placed.find(w => !w.found && (w.key === str || w.key === rev));
+  if (hit) { markFound(hit); return; }
+  const els = sel.map(p => cellEls[p.r * P.size + p.c]);
+  els.forEach(c => c.classList.add('miss'));
+  setTimeout(() => els.forEach(c => c.classList.remove('miss')), 400);
+}
+
+el.cells.addEventListener('pointerdown', e => {
+  if (!P || e.button > 0) return;
+  const cell = cellAt(e.clientX, e.clientY);
+  if (!cell) return;
+  if (anchor) {
+    if (anchor.r === cell.r && anchor.c === cell.c) { anchor = null; clearSel(); return; }
+    const sel = line(anchor, cell, P.size);
+    anchor = null;
+    finish(sel);
+    return;
+  }
+  dragStart = cell;
+  try { el.cells.setPointerCapture(e.pointerId); } catch (err) { /* not needed everywhere */ }
+  showSel([cell]);
+});
+el.cells.addEventListener('pointermove', e => {
+  const start = dragStart || anchor;
+  if (!P || !start) return;
+  const cell = cellAt(e.clientX, e.clientY);
+  if (cell) showSel(line(start, cell, P.size));
+});
+el.cells.addEventListener('pointerup', e => {
+  if (!P || !dragStart) return;
+  const cell = cellAt(e.clientX, e.clientY) || dragStart;
+  const sel = line(dragStart, cell, P.size);
+  const start = dragStart;
+  dragStart = null;
+  if (sel.length < 2) { anchor = start; showSel([start]); } else { finish(sel); }
+});
+el.cells.addEventListener('pointercancel', () => { dragStart = null; clearSel(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { anchor = null; dragStart = null; if (P) clearSel(); }
+});
+
+/* Controls */
+function loadPreset(p, scroll) {
+  el.title.value = p.title;
+  el.words.value = p.words.join('\n');
+  el.count.value = p.words.length > 16 ? '12' : 'all';
+  document.querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.id === p.id)));
+  updateWordCount();
+  generate(scroll);
+}
+PRESETS.forEach(p => {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'chip'; b.dataset.id = p.id; b.textContent = p.name;
+  b.setAttribute('aria-pressed', 'false');
+  b.addEventListener('click', () => loadPreset(p, true));
+  el.presets.appendChild(b);
+});
+el.words.addEventListener('input', () => {
+  document.querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', 'false'));
+  updateWordCount();
+});
+$('#maker').addEventListener('submit', e => { e.preventDefault(); generate(true); });
+$('#shuffle').addEventListener('click', () => generate(false));
+$('#again').addEventListener('click', () => generate(false));
+el.answers.addEventListener('click', () => {
+  if (!P) return;
+  P.showAnswers = !P.showAnswers;
+  el.answers.setAttribute('aria-pressed', String(P.showAnswers));
+  el.answers.textContent = P.showAnswers ? 'Hide answers' : 'Show answers';
+  paintAnswers();
+});
+const printBtn = $('#printBtn');
+if (printBtn) printBtn.addEventListener('click', () => window.print());
+
+loadPreset(PRESETS[0], false);
+})();
+</script>
+
+</body>
+</html>
